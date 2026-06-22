@@ -1,19 +1,77 @@
 import { Eye, EyeOff, Mail } from "lucide-react";
 import { useState } from "react";
 import { Link, useSearchParams } from "react-router";
+import { useNavigate } from "react-router";
 
-export default function About() {
+import { supabase } from "~/lib/supabase";
+
+export default function Auth() {
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const mode = searchParams.get("mode");
   const isSignIn = mode == "signin";
   const [showPass, setShowPass] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [username, setUsername] = useState("");
+  const [errorText, setErrorText] = useState<any>("");
+
+  // ---Sign Up---
+  async function signUpNewUser() {
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        emailRedirectTo: "https://danny192168.github.io/Basic-SocMed/feeds",
+        data: { display_name: username },
+      },
+    });
+    if (error) {
+      console.log("sigup error: " + error.message);
+      // console.log(error);
+      setErrorText(error.message);
+    }
+    console.log(data);
+    navigate("/feeds");
+  }
+
+  // ---Sign In---
+  async function signInWithEmail() {
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+    if (error) {
+      console.log("sigin error: " + error.message);
+      // console.log(error);
+      setErrorText(error.message);
+    }
+    console.log(data);
+    navigate("/feeds");
+  }
+
   return (
     <div className="max-w-6xl w-full mx-auto flex-1 p-3 grid place-items-center">
       <div className="bg-card p-7 rounded-xl border max-w-md w-full">
         <h1 className="text-2xl text-center mb-4">
           {isSignIn ? "Sign In Account" : "Sign Up for new account"}
         </h1>
-        <form action="">
+        <form
+          onSubmit={async (e) => {
+            e.preventDefault();
+            try {
+              if (isSignIn) {
+                await signInWithEmail();
+              } else {
+                await signUpNewUser();
+              }
+            } catch (error: any) {
+              console.error("Auth error:", error);
+              // Show error to user
+              setErrorText(error.message);
+            }
+          }}
+        >
           <div className="flex flex-col gap-4">
             {!isSignIn && (
               <div>
@@ -24,6 +82,10 @@ export default function About() {
                   <input
                     id="username"
                     type="text"
+                    value={username}
+                    onChange={(e) => {
+                      setUsername(e.target.value);
+                    }}
                     placeholder="Your name"
                     className="px-3 p-2 rounded-lg outline-none text-md w-full"
                     style={{
@@ -42,6 +104,10 @@ export default function About() {
                 <input
                   id="email"
                   type="email"
+                  value={email}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                  }}
                   placeholder="you@example.com"
                   className="pr-10 px-3 p-2 rounded-lg outline-none text-md w-full"
                   style={{
@@ -71,6 +137,10 @@ export default function About() {
                 <input
                   id="password"
                   type={showPass ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                  }}
                   placeholder="••••••••"
                   required
                   className="pr-10 px-3 py-2 rounded-lg outline-none text-md w-full"
@@ -98,6 +168,7 @@ export default function About() {
             </button>
           </div>
         </form>
+        <p className="text-red-400 mt-2 text-center">{errorText}</p>
         <p className="text-center text-sm mt-4">
           {isSignIn ? (
             <>
