@@ -1,5 +1,6 @@
 {
   "name": "basic-socmed",
+  "homepage": "https://github.com/danny192168/Basic-SocMed/",
   "private": true,
   "type": "module",
   "scripts": {
@@ -8,7 +9,7 @@
     "start": "react-router-serve ./build/server/index.js",
     "typecheck": "react-router typegen && tsc",
     "predeploy": "npm run build",
-    "deploy": "gh-pages -d build/client"
+    "deploy": "gh-pages -d dist"
   },
   "dependencies": {
     "@react-router/node": "8.0.0",
