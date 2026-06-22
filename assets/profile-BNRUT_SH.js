@@ -1,0 +1,1 @@
+import{o as e,t}from"./jsx-runtime-D3n6tQSC.js";var n=t(),r=e(function(){return(0,n.jsx)(`div`,{children:`Profile Page`})});export{r as default};
