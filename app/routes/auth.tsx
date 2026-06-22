@@ -11,7 +11,7 @@ export default function About() {
     <div className="max-w-6xl w-full mx-auto flex-1 p-3 grid place-items-center">
       <div>
         <div className="bg-card p-7 rounded-xl border w-md">
-          <h1 className="text-2xl text-center mb-2">
+          <h1 className="text-2xl text-center mb-4">
             {isSignIn ? "Sign In Account" : "Sign Up for new account"}
           </h1>
           <form action="">
