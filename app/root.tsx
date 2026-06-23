@@ -12,6 +12,8 @@ import "./app.css";
 import { Navbar } from "./components/navbar";
 import { Footer } from "./components/footer";
 
+import { Toaster } from "@/components/ui/sonner";
+
 export const links: Route.LinksFunction = () => [
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
   {
@@ -49,6 +51,7 @@ export default function App() {
       <Navbar />
       <Outlet />
       <Footer />
+      <Toaster />
     </>
   );
 }

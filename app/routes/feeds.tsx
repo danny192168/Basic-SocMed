@@ -1,6 +1,6 @@
 import { Image, ImageUp, Trash2, User } from "lucide-react";
 import { PostCard } from "~/components/post-card";
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -9,13 +9,142 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
 import { Label } from "~/components/ui/label";
+import { toast } from "sonner";
+
+import { supabase } from "~/lib/supabase";
+import { Badge } from "~/components/ui/badge";
+
+// READ
 
 export default function Feeds() {
   const [open, setOpen] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+
+  const [postTitle, setPostTitle] = useState("");
+  const [postDescription, setPostDescription] = useState("");
+
+  type PostData = {
+    id: number;
+    created_at: string;
+    username: string;
+    title: string;
+    description: string;
+  };
+
+  const [postDatas, setPostDatas] = useState<PostData[]>([]);
+
+  // INSERT
+
+  const addPost = async () => {
+    setUploading(true);
+
+    const newPostData = {
+      username: "John Doe",
+      title: postTitle,
+      description: postDescription,
+    };
+
+    try {
+      const data = await toast.promise(
+        (async () => {
+          const { data, error } = await supabase
+            .from("PostUploads")
+            .insert([newPostData])
+            .select()
+            .single();
+
+          if (error) throw error;
+
+          return data;
+        })(),
+        {
+          loading: "Creating post...",
+          success: (post) => {
+            console.log("Post upload data:", data);
+            setPostTitle("");
+            setPostDescription("");
+            setOpen(false);
+            return `"${post.title}" has been posted!`;
+          },
+          error: (error) => error.message,
+        },
+      );
+    } catch (error: any) {
+      console.error("Post upload failed:", error);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  //   Delete
+
+  const deletePost = async (postId: number) => {
+    const { error } = await supabase.from("PostUploads").delete().eq("id", postId);
+    if (error) {
+      toast.error("Failed to delete post");
+    } else {
+      toast.success("Post deleted");
+      fetchPosts(); // refresh the list
+    }
+  };
+
+  const fetchPosts = useCallback(async () => {
+    const { data, error } = await supabase.from("PostUploads").select("*");
+    if (error) {
+      console.log(error);
+    } else {
+      console.log(data);
+      setPostDatas(data);
+      console.log("FETCHED");
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchPosts();
+  }, [fetchPosts]);
+
+  // SUPABASE SUBSCRIPTION
+  useEffect(() => {
+    const channel = supabase
+      .channel("posts-channel")
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "PostUploads",
+        },
+        (payload) => {
+          const newPost = payload.new as PostData;
+          setPostDatas((prev) => [newPost, ...prev]);
+        },
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "DELETE",
+          schema: "public",
+          table: "PostUploads",
+        },
+        (payload) => {
+          const deletedPost = payload.old as PostData;
+          setPostDatas((prev) => prev.filter((post) => post.id !== deletedPost.id));
+        },
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  //IMAGE UPLOAD
 
   return (
     <div className="flex-1 max-w-4xl w-full p-3 mx-auto gap-4">
@@ -62,27 +191,54 @@ export default function Feeds() {
               <DialogHeader>
                 <DialogTitle className="font-fredoka">Create Post</DialogTitle>
                 <DialogDescription>
-                  Make changes to your post here. Click save when you're done.
+                  Make your post here. Click post when you're done.
                 </DialogDescription>
               </DialogHeader>
 
               {/* Form inputs */}
-              <div className="grid gap-4 py-4">
+              <form
+                className="grid gap-4 py-4"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  addPost();
+                }}
+              >
                 <div className="grid gap-2">
-                  <Label htmlFor="title-1">Tile</Label>
-                  <input
-                    id="title-1"
-                    className="border p-2 rounded outline-none"
-                    placeholder="Write a title"
-                  />
+                  <Label htmlFor="title-1">Title</Label>
+                  <div className="relative">
+                    <input
+                      id="title-1"
+                      value={postTitle}
+                      disabled={uploading}
+                      required
+                      onChange={(e) => {
+                        setPostTitle(e.target.value);
+                      }}
+                      className={`w-full border p-2 rounded outline-none ${uploading && "text-muted-foreground pr-10"}`}
+                      placeholder="Write a title"
+                    />
+                    {uploading && (
+                      <Spinner className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                    )}
+                  </div>
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="description-1">Description</Label>
-                  <textarea
-                    id="description-1"
-                    className="border p-2 rounded outline-none"
-                    placeholder="Write a description"
-                  />
+                  <div className="relative">
+                    {uploading && (
+                      <Spinner className="absolute right-3 top-1 translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                    )}
+                    <textarea
+                      id="description-1"
+                      value={postDescription}
+                      onChange={(e) => {
+                        setPostDescription(e.target.value);
+                      }}
+                      className={`w-full border p-2 rounded outline-none ${uploading && "text-muted-foreground"}`}
+                      disabled={uploading}
+                      placeholder="Write a description"
+                    />
+                  </div>
                 </div>
                 {imageFile ? (
                   <div className="grid gap-2">
@@ -105,7 +261,11 @@ export default function Feeds() {
                   </div>
                 ) : (
                   <div className="border flex items-center p-2 rounded">
-                    <span className="text-md font-semibold">Add to your post</span>
+                    <span
+                      className={`text-md font-semibold ${uploading && "text-muted-foreground"}`}
+                    >
+                      Add to your post
+                    </span>
                     <label
                       htmlFor="image"
                       className="grid place-items-center rounded-md w-8 h-8  bg-background cursor-pointer ml-auto"
@@ -114,6 +274,7 @@ export default function Feeds() {
                         type="file"
                         accept="image/*"
                         className="hidden"
+                        disabled={uploading}
                         id="image"
                         onChange={(e) => {
                           const file = e.target.files?.[0];
@@ -123,33 +284,52 @@ export default function Feeds() {
                           }
                         }}
                       />
-                      <Image />
+                      <Image className={`${uploading && "text-muted-foreground"}`} />
                     </label>
                   </div>
                 )}
-              </div>
 
-              <DialogFooter>
-                <Button className="w-full font-semibold text-md font-fredoka" type="submit">
-                  Post
-                </Button>
-              </DialogFooter>
+                {uploading && (
+                  <Badge variant="outline" className="bg-gray-700">
+                    Uploading
+                    <Spinner data-icon="inline-end" />
+                  </Badge>
+                )}
+
+                <DialogFooter>
+                  <Button
+                    className="w-full font-semibold text-md font-fredoka"
+                    disabled={uploading || postTitle.length == 0}
+                    type="submit"
+                    onClick={() => {
+                      console.log(postDatas);
+                    }}
+                  >
+                    Post
+                  </Button>
+                </DialogFooter>
+              </form>
             </DialogContent>
           </Dialog>
+          {/* POSTS */}
 
-          <PostCard
+          {postDatas.map((post) => (
+            <PostCard
+              key={post.id}
+              id={post.id}
+              username={post.username}
+              time={post.created_at}
+              title={post.title}
+              description={post.description}
+              onDelete={deletePost}
+            />
+          ))}
+          {/* <PostCard
             username="John Doe"
             time="Jun 22, 4:24 PM"
             title="Does anyone Like Bananas?"
             description="I have some bananas here if you guys want some"
-          />
-
-          <PostCard
-            username="John Doe"
-            time="Jun 22, 4:24 PM"
-            title="Does anyone Like Bananas?"
-            description="I have some bananas here if you guys want some"
-          />
+          /> */}
         </div>
       </div>
     </div>
