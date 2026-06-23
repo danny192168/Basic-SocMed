@@ -28,6 +28,7 @@ export default function Feeds() {
 
   const [postTitle, setPostTitle] = useState("");
   const [postDescription, setPostDescription] = useState("");
+  const [user, setUser] = useState<any>(null);
 
   type PostData = {
     id: number;
@@ -35,21 +36,50 @@ export default function Feeds() {
     username: string;
     title: string;
     description: string;
+    image_url: string | null;
   };
 
   const [postDatas, setPostDatas] = useState<PostData[]>([]);
+
+  //   Image Upload
+  const uploadImage = async (file: File): Promise<string | null> => {
+    // Sanitize filename: remove special characters, keep only alphanumeric, hyphens, underscores
+    const sanitizedName = file.name.replace(/[^a-zA-Z0-9.-]/g, "-").replace(/^-+|-+$/g, "");
+
+    const filePath = `${sanitizedName}-${Date.now()}`;
+
+    console.log("Starting image upload:", filePath);
+
+    const { error } = await supabase.storage.from("post-images").upload(filePath, file);
+
+    if (error) {
+      console.error("Error uploading image:", error.message);
+      return null;
+    }
+
+    console.log("Image uploaded successfully, getting public URL...");
+    const { data } = await supabase.storage.from("post-images").getPublicUrl(filePath);
+
+    console.log("Public URL data:", data);
+    return data.publicUrl;
+  };
 
   // INSERT
 
   const addPost = async () => {
     setUploading(true);
-
+    let imageUrl: string | null = null;
+    if (imageFile) {
+      imageUrl = await uploadImage(imageFile);
+    }
     const newPostData = {
-      username: "John Doe",
+      image_url: imageUrl,
+      username: user?.email ?? "Anonymous",
       title: postTitle,
       description: postDescription,
     };
-
+    console.log("imageUrl");
+    console.log(imageUrl);
     try {
       const data = await toast.promise(
         (async () => {
@@ -68,6 +98,7 @@ export default function Feeds() {
           success: (post) => {
             console.log("Post upload data:", data);
             setPostTitle("");
+            setImageFile(null);
             setPostDescription("");
             setOpen(false);
             return `"${post.title}" has been posted!`;
@@ -94,8 +125,14 @@ export default function Feeds() {
     }
   };
 
+  // READ
+
   const fetchPosts = useCallback(async () => {
-    const { data, error } = await supabase.from("PostUploads").select("*");
+    const { data, error } = await supabase
+      .from("PostUploads")
+      .select("*")
+      .order("created_at", { ascending: false });
+
     if (error) {
       console.log(error);
     } else {
@@ -108,6 +145,16 @@ export default function Feeds() {
   useEffect(() => {
     fetchPosts();
   }, [fetchPosts]);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data, error }) => {
+      if (error) {
+        console.error("Failed to load user:", error);
+        return;
+      }
+      setUser(data.user);
+    });
+  }, []);
 
   // SUPABASE SUBSCRIPTION
   useEffect(() => {
@@ -144,10 +191,8 @@ export default function Feeds() {
     };
   }, []);
 
-  //IMAGE UPLOAD
-
   return (
-    <div className="flex-1 max-w-4xl w-full p-3 mx-auto gap-4">
+    <div className="flex-1 max-w-4xl w-screen p-3 mx-auto gap-4">
       <div className="max-w-2xl mx-auto">
         <div>
           {/* POST */}
@@ -158,7 +203,7 @@ export default function Feeds() {
               </div>
               <input
                 readOnly
-                className="bg-input-background px-3 flex-1 rounded-md outline-none"
+                className="bg-input-background px-3 min-w-0 flex-1 rounded-md outline-none"
                 style={{ color: "var(--foreground-dark)", caretColor: "transparent" }}
                 type="text"
                 placeholder="Make a post"
@@ -252,11 +297,13 @@ export default function Feeds() {
                       >
                         <Trash2 className="w-5 h-5" />
                       </button>
-                      <img
-                        src={URL.createObjectURL(imageFile)}
-                        alt="Preview"
-                        className="w-full h-auto object-cover rounded border"
-                      />
+                      <div className="w-full bg-background p-2 rounded-md flex justify-center">
+                        <img
+                          src={URL.createObjectURL(imageFile)}
+                          alt="Preview"
+                          className={`max-w-full max-h-44 w-auto h-auto rounded border transition-all ${uploading && "brightness-75"}`}
+                        />
+                      </div>
                     </div>
                   </div>
                 ) : (
@@ -322,6 +369,7 @@ export default function Feeds() {
               title={post.title}
               description={post.description}
               onDelete={deletePost}
+              imageUrl={post.image_url}
             />
           ))}
           {/* <PostCard

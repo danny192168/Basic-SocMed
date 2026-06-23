@@ -33,15 +33,18 @@ export function Navbar() {
   };
 
   return (
-    <div className="border-b p-2 sticky top-0 w-full bg-background/95 backdrop-blur-xs">
+    <div className="border-b p-2 sticky top-0 w-screen overflow-hidden bg-background/95 backdrop-blur-xs ">
       <div>
         <div className="flex max-w-4xl mx-auto p-3">
           <NavLink to="/">
-            <span className="font-fredoka font-bold text-3xl" style={{ color: "var(--primary)" }}>
+            <span
+              className="font-fredoka font-bold text-xl sm:text-3xl"
+              style={{ color: "var(--primary)" }}
+            >
               SocMed
             </span>
           </NavLink>
-          <nav className="flex items-center gap-3 ml-auto text-xl">
+          <nav className="flex items-center gap-3 ml-auto text-md">
             <NavLink to="/feeds">Feeds</NavLink>
             <NavLink to="profile">Profile</NavLink>
           </nav>
@@ -52,7 +55,7 @@ export function Navbar() {
             // User is logged in - show username + sign out button
             <div className="ml-4 flex items-center gap-2">
               <span className="text-sm">{user.email}</span>
-              <Button onClick={handleSignOut} className="bg-accent hover:bg-accent/75">
+              <Button onClick={handleSignOut} className="bg-accent hover:bg-accent/75 ">
                 Sign Out
               </Button>
             </div>
