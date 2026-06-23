@@ -76,7 +76,7 @@ export default function Feeds() {
     }
     const newPostData = {
       image_url: imageUrl,
-      username: user?.email ?? "Anonymous",
+      username: user?.user_metadata?.display_name ?? "Anonymous",
       title: postTitle,
       description: postDescription,
     };
