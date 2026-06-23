@@ -86,10 +86,15 @@ export function PostCard({
           <p className="text-sm sm:text-base mb-2">{description}</p>
         </div>
         {imageUrl ? (
-          <div className="bg-gray-100 dark:bg-gray-800 w-full text-gray-700 dark:text-gray-300 text-sm sm:text-base rounded">
-            <img src={imageUrl} alt={title} className="w-full h-auto object-cover rounded" />
+          <div className="bg-background w-full rounded-md flex justify-center">
+            <img
+              src={imageUrl}
+              alt={title}
+              className="max-w-full max-h-240 w-auto h-auto rounded border transition-all object-cover "
+            />
           </div>
         ) : null}
+
         <div className="border-t border-border mt-2 py-2">
           <div className="flex gap-2 sm:gap-3 flex-wrap">
             <button className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm hover:opacity-75 transition">

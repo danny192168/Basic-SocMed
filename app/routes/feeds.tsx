@@ -18,6 +18,8 @@ import { toast } from "sonner";
 
 import { supabase } from "~/lib/supabase";
 import { Badge } from "~/components/ui/badge";
+import { Card, CardContent, CardHeader } from "~/components/ui/card";
+import { Skeleton } from "~/components/ui/skeleton";
 
 // READ
 
@@ -234,7 +236,7 @@ export default function Feeds() {
 
             <DialogContent className="sm:max-w-xl">
               <DialogHeader>
-                <DialogTitle className="font-fredoka">Create Post</DialogTitle>
+                <DialogTitle>Create Post</DialogTitle>
                 <DialogDescription>
                   Make your post here. Click post when you're done.
                 </DialogDescription>
@@ -336,23 +338,22 @@ export default function Feeds() {
                   </div>
                 )}
 
-                {uploading && (
-                  <Badge variant="outline" className="bg-gray-700">
-                    Uploading
-                    <Spinner data-icon="inline-end" />
-                  </Badge>
-                )}
-
                 <DialogFooter>
                   <Button
-                    className="w-full font-semibold text-md font-fredoka"
+                    className={`w-full font-semibold text-md  ${uploading && "font-normal"}`}
                     disabled={uploading || postTitle.length == 0}
                     type="submit"
                     onClick={() => {
                       console.log(postDatas);
                     }}
                   >
-                    Post
+                    {uploading ? (
+                      <>
+                        <Spinner data-icon="inline-start" /> Uploading
+                      </>
+                    ) : (
+                      "Post"
+                    )}
                   </Button>
                 </DialogFooter>
               </form>
@@ -372,6 +373,29 @@ export default function Feeds() {
               imageUrl={post.image_url}
             />
           ))}
+          {postDatas.length == 0 && (
+            <>
+              <Card className="w-full mb-2 sm:mb-3 rounded-md ring-0">
+                <CardHeader>
+                  <Skeleton className="h-4 w-2/3" />
+                  <Skeleton className="h-4 w-1/2" />
+                </CardHeader>
+                <CardContent>
+                  <Skeleton className="aspect-video w-full" />
+                </CardContent>
+              </Card>
+              <Card className="w-full mb-2 sm:mb-3 rounded-md ring-0">
+                <CardHeader>
+                  <Skeleton className="h-4 w-1/3" />
+                  <Skeleton className="h-4 w-3/4" />
+                  <Skeleton className="h-4 w-2/3" />
+                </CardHeader>
+                <CardContent>
+                  <Skeleton className="aspect-video w-full" />
+                </CardContent>
+              </Card>
+            </>
+          )}
           {/* <PostCard
             username="John Doe"
             time="Jun 22, 4:24 PM"
