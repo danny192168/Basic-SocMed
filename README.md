@@ -1,24 +1,62 @@
-# Welcome to React Router!
+# Basic SocMed - Simple Social Media Prototype
 
-A modern, production-ready template for building full-stack React applications using React Router.
+A clean, minimalist social media application built with React, TypeScript, and Supabase. This is a **simplified version** designed to demonstrate core social media features in an easy-to-understand way. Perfect for learning full-stack development with modern tools.
 
-[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/github/remix-run/react-router-templates/tree/main/default)
+**What makes it simple:**
 
-## Features
+- Straightforward UI with minimal complexity
+- Core features only (no feeds algorithms, trending, DMs, etc.)
+- Easy to understand codebase for learning
+- Quick to set up and run locally
 
-- 🚀 Server-side rendering
-- ⚡️ Hot Module Replacement (HMR)
-- 📦 Asset bundling and optimization
-- 🔄 Data loading and mutations
-- 🔒 TypeScript by default
-- 🎉 TailwindCSS for styling
-- 📖 [React Router docs](https://reactrouter.com/)
+![SocMed Feeds Page](./public/images/feeds-screenshot.png)
+
+## Core Features
+
+- 📝 **Create Posts** - Share posts with titles, descriptions, and images
+- 🖼️ **Image Uploads** - Simple image storage with Supabase
+- 👍 **Engagement** - Like and dislike posts
+- 🔐 **Authentication** - Basic sign-up and sign-in
+- 🔄 **Real-time Updates** - Posts sync instantly across users
+- 🗑️ **Delete Posts** - Remove your own posts
+- 🎨 **Clean UI** - Built with Tailwind CSS and shadcn/ui
+- 🔔 **User Feedback** - Toast notifications for actions
+- 📱 **Responsive** - Works on desktop and mobile
+
+## Tech Stack
+
+- **Frontend**: React 18 + React Router 8 + TypeScript
+- **Styling**: Tailwind CSS + shadcn/ui
+- **Backend**: Supabase (Auth, Database, Storage, Real-time)
+- **Build Tool**: Vite
+- **Notifications**: Sonner
+- **Date Formatting**: date-fns
+- **Icons**: lucide-react
+
+## Prerequisites
+
+- Node.js 16+
+- npm or pnpm
+- Supabase account and project
+- Environment variables configured
+
+## Perfect For Learning
+
+This project is ideal for:
+
+- **Beginners** learning full-stack React development
+- **Learning Supabase** - Auth, Database, Storage, Real-time subscriptions
+- **Understanding** real-time data synchronization
+- **Exploring** React Router v8 and component patterns
+- **Getting started** with TypeScript in a real project
+
+The codebase is intentionally kept simple and readable to make it easy to follow and modify.
 
 ## Getting Started
 
 ### Installation
 
-Install the dependencies:
+Install dependencies:
 
 ```bash
 npm install
@@ -26,15 +64,15 @@ npm install
 
 ### Development
 
-Start the development server with HMR:
+Start the dev server:
 
 ```bash
 npm run dev
 ```
 
-Your application will be available at `http://localhost:5173`.
+App runs on `http://localhost:5173`
 
-## Building for Production
+### Build
 
 Create a production build:
 
@@ -42,46 +80,52 @@ Create a production build:
 npm run build
 ```
 
-## Deployment
-
-### Docker Deployment
-
-To build and run using Docker:
-
-```bash
-docker build -t my-app .
-
-# Run the container
-docker run -p 3000:3000 my-app
-```
-
-The containerized application can be deployed to any platform that supports Docker, including:
-
-- AWS ECS
-- Google Cloud Run
-- Azure Container Apps
-- Digital Ocean App Platform
-- Fly.io
-- Railway
-
-### DIY Deployment
-
-If you're familiar with deploying Node applications, the built-in app server is production-ready.
-
-Make sure to deploy the output of `npm run build`
+## Project Structure
 
 ```
-├── package.json
-├── package-lock.json (or pnpm-lock.yaml, or bun.lockb)
-├── build/
-│   ├── client/    # Static assets
-│   └── server/    # Server-side code
+app/
+├── components/
+│   ├── ui/               # shadcn/ui components
+│   ├── navbar.tsx
+│   ├── footer.tsx
+│   └── post-card.tsx
+├── routes/
+│   ├── auth.tsx          # Sign up / Sign in
+│   ├── feeds.tsx         # Main feed with posts
+│   ├── home.tsx
+│   └── profile.tsx
+├── lib/
+│   └── supabase.ts       # Supabase client
+├── app.css
+├── root.tsx
+└── routes.ts
 ```
 
-## Styling
+## Database Schema
 
-This template comes with [Tailwind CSS](https://tailwindcss.com/) already configured for a simple default starting experience. You can use whatever CSS framework you prefer.
+The app uses a `PostUploads` table with:
 
----
+```sql
+- id (number, primary key)
+- created_at (timestamp)
+- username (string)
+- title (string)
+- description (text)
+- image_url (string, nullable)
+- likes (number, default: 0)
+- dislikes (number, default: 0)
+```
 
-Built with ❤️ using React Router.
+## Key Features Explained
+
+### Authentication
+
+Users sign up with email and password. Display name is stored in user metadata and used as the post author name.
+
+### Real-time Feeds
+
+Posts are streamed via Supabase `postgres_changes` subscription. When a user creates/deletes a post, all connected clients update instantly.
+
+### Image Upload
+
+Images are sanitized and uploaded to Supabase Storage (`post-images` bucket), and a public URL is stored with the post.

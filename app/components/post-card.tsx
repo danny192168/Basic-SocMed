@@ -21,13 +21,17 @@ import {
 import { formatDistanceToNow } from "date-fns";
 
 interface PostCardProps {
-  id: number; // Add this
+  id: number;
   username: string;
   title: string;
   description: string;
   time: string;
   imageUrl?: string | null;
-  onDelete?: (id: number) => void; // Add this
+  onDelete?: (id: number) => void;
+  updateReaction: (postId: number, column: "likes" | "dislikes") => void;
+  likes: number;
+  dislikes: number;
+  commentCount: number;
 }
 
 export function PostCard({
@@ -38,6 +42,10 @@ export function PostCard({
   onDelete,
   id,
   imageUrl,
+  updateReaction,
+  likes,
+  dislikes,
+  commentCount,
 }: PostCardProps) {
   return (
     <div className="bg-card p-2 sm:p-3 mb-2 sm:mb-3 rounded-md">
@@ -97,14 +105,26 @@ export function PostCard({
 
         <div className="border-t border-border mt-2 py-2">
           <div className="flex gap-2 sm:gap-3 flex-wrap">
-            <button className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm hover:opacity-75 transition">
-              <ArrowBigUp className="w-4 h-4" /> 67 Like
+            <button
+              onClick={() => {
+                updateReaction(id, "likes");
+              }}
+              className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm hover:opacity-75 transition"
+            >
+              <ArrowBigUp className="w-4 h-4" />
+              {`${likes} Likes`}
+            </button>
+            <button
+              onClick={() => {
+                updateReaction(id, "dislikes");
+              }}
+              className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm hover:opacity-75 transition"
+            >
+              <ArrowBigDown className="w-4 h-4" />
+              {`${dislikes} Dislikes`}
             </button>
             <button className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm hover:opacity-75 transition">
-              <ArrowBigDown className="w-4 h-4" /> 3 Dislike
-            </button>
-            <button className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm hover:opacity-75 transition">
-              <MessageSquare className="w-4 h-4" /> 43 Comment
+              <MessageSquare className="w-4 h-4" /> {`${commentCount} Comments`}
             </button>
           </div>
         </div>

@@ -39,6 +39,9 @@ export default function Feeds() {
     title: string;
     description: string;
     image_url: string | null;
+    likes: number;
+    dislikes: number;
+    commentCount: number;
   };
 
   const [postDatas, setPostDatas] = useState<PostData[]>([]);
@@ -192,6 +195,23 @@ export default function Feeds() {
       supabase.removeChannel(channel);
     };
   }, []);
+
+  //   UPDATE
+  const updateReaction = async (postId: number, column: "likes" | "dislikes") => {
+    const { error } = await supabase.rpc("increment_counter", {
+      table_name: "PostUploads",
+      row_id: postId,
+      column_name: column,
+    });
+
+    if (error) {
+      console.error(`Failed to update ${column}:`, error.message);
+      return;
+    }
+
+    console.log(`${column} updated`);
+    fetchPosts();
+  };
 
   return (
     <div className="flex-1 max-w-4xl w-screen p-3 mx-auto gap-4">
@@ -370,7 +390,11 @@ export default function Feeds() {
               title={post.title}
               description={post.description}
               onDelete={deletePost}
+              updateReaction={updateReaction}
+              likes={post.likes}
+              dislikes={post.dislikes}
               imageUrl={post.image_url}
+              commentCount={0}
             />
           ))}
           {postDatas.length == 0 && (
