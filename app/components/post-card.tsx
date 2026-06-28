@@ -19,6 +19,12 @@ import {
 } from "./ui/dropdown-menu";
 
 import { formatDistanceToNow } from "date-fns";
+import { use } from "react";
+
+type ReactedPost = {
+  id: number;
+  userReaction: any;
+};
 
 interface PostCardProps {
   id: number;
@@ -32,6 +38,7 @@ interface PostCardProps {
   likes: number;
   dislikes: number;
   commentCount: number;
+  userReaction: string;
 }
 
 export function PostCard({
@@ -46,6 +53,7 @@ export function PostCard({
   likes,
   dislikes,
   commentCount,
+  userReaction,
 }: PostCardProps) {
   return (
     <div className="bg-card p-2 sm:p-3 mb-2 sm:mb-3 rounded-md">
@@ -103,28 +111,34 @@ export function PostCard({
           </div>
         ) : null}
 
-        <div className="border-t border-border mt-2 py-2">
+        <div className="border-t border-border mt-2 py-2 hidden">
           <div className="flex gap-2 sm:gap-3 flex-wrap">
             <button
               onClick={() => {
                 updateReaction(id, "likes");
               }}
-              className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm hover:opacity-75 transition"
+              className={`flex items-center gap-1 sm:gap-2 text-xs sm:text-sm hover:opacity-75 p-1 rounded-md transition ${userReaction == "like" && "bg-gray-950/40"}`}
             >
-              <ArrowBigUp className="w-4 h-4" />
+              <ArrowBigUp
+                className={`w-5 h-5 ${userReaction == "like" ? "text-primary" : ""}`}
+                fill={userReaction == "like" ? "var(--primary)" : ""}
+              />
               {`${likes} Likes`}
             </button>
             <button
               onClick={() => {
                 updateReaction(id, "dislikes");
               }}
-              className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm hover:opacity-75 transition"
+              className={`flex items-center gap-1 sm:gap-2 text-xs sm:text-sm hover:opacity-75 p-1 rounded-md transition ${userReaction == "dislike" && "bg-gray-950/40"}`}
             >
-              <ArrowBigDown className="w-4 h-4" />
+              <ArrowBigDown
+                className={`w-5 h-5 ${userReaction == "dislike" ? "text-primary" : ""}`}
+                fill={userReaction == "dislike" ? "var(--primary)" : ""}
+              />
               {`${dislikes} Dislikes`}
             </button>
             <button className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm hover:opacity-75 transition">
-              <MessageSquare className="w-4 h-4" /> {`${commentCount} Comments`}
+              <MessageSquare className="w-5 h-5" /> {`${commentCount} Comments`}
             </button>
           </div>
         </div>

@@ -1,3 +1,5 @@
+// WE CAN MAKE DIFFERENT NAVBARS FOR OTHER SITES LIKE ON THE FEEDS AND PROFILE PAGE
+
 import { NavLink } from "react-router";
 import { Button } from "./ui/button";
 import { useEffect, useState } from "react";
@@ -64,7 +66,7 @@ export function Navbar() {
           </nav>
 
           {loading ? (
-            <div className="ml-4">Loading...</div>
+            <div className="ml-4 grid place-items-center">Loading...</div>
           ) : user ? (
             // User is logged in - show username + sign out button
             <div className="ml-4 flex items-center gap-2">

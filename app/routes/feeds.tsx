@@ -1,6 +1,6 @@
 import { Image, ImageUp, Trash2, User } from "lucide-react";
 import { PostCard } from "~/components/post-card";
-import { useCallback, useEffect, useState } from "react";
+import { use, useCallback, useEffect, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -73,35 +73,37 @@ export default function Feeds() {
 
   const addPost = async () => {
     setUploading(true);
+
     let imageUrl: string | null = null;
     if (imageFile) {
       imageUrl = await uploadImage(imageFile);
     }
+
     const newPostData = {
       image_url: imageUrl,
       username: user?.user_metadata?.display_name ?? "Anonymous",
       title: postTitle,
       description: postDescription,
+      likes: 0,
+      dislikes: 0,
     };
-    console.log("imageUrl");
-    console.log(imageUrl);
+
     try {
-      const data = await toast.promise(
+      await toast.promise(
         (async () => {
           const { data, error } = await supabase
             .from("PostUploads")
-            .insert([newPostData])
+            .insert(newPostData)
             .select()
             .single();
 
           if (error) throw error;
-
           return data;
         })(),
         {
           loading: "Creating post...",
           success: (post) => {
-            console.log("Post upload data:", data);
+            console.log("Post upload data:", post);
             setPostTitle("");
             setImageFile(null);
             setPostDescription("");
@@ -126,7 +128,7 @@ export default function Feeds() {
       toast.error("Failed to delete post");
     } else {
       toast.success("Post deleted");
-      fetchPosts(); // refresh the list
+      //   fetchPosts(); // refresh the list
     }
   };
 
@@ -142,14 +144,14 @@ export default function Feeds() {
       console.log(error);
     } else {
       console.log(data);
-      setPostDatas(data);
       console.log("FETCHED");
+      setPostDatas(data);
     }
   }, []);
 
   useEffect(() => {
     fetchPosts();
-  }, [fetchPosts]);
+  }, []);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data, error }) => {
@@ -197,21 +199,126 @@ export default function Feeds() {
   }, []);
 
   //   UPDATE
+  //USER REACTION
   const updateReaction = async (postId: number, column: "likes" | "dislikes") => {
-    const { error } = await supabase.rpc("increment_counter", {
-      table_name: "PostUploads",
-      row_id: postId,
-      column_name: column,
-    });
+    const reaction = column === "likes" ? "like" : "dislike";
+    const userId = user?.id;
 
-    if (error) {
-      console.error(`Failed to update ${column}:`, error.message);
+    if (!userId) {
+      toast.error("You must be signed in to react");
       return;
     }
 
-    console.log(`${column} updated`);
-    fetchPosts();
+    let reactionMode = reaction;
+    let currentReaction = userReactions.find((reaction) => Number(reaction.post_id) == postId);
+
+    // Update local state: toggle or add reaction
+    console.log("reactions:");
+    console.log(currentReaction, reaction);
+
+    if (String(currentReaction?.reaction) == String(reaction)) {
+      setUserReactions((prev) => prev.filter((item) => item.post_id !== String(postId)));
+      console.log("ASDASDASDASDASDASDADADADA");
+      console.log(userReactions.filter((x) => x.post_id == String(postId)));
+    } else {
+      setUserReactions((prev) => [
+        ...prev.filter((r) => Number(r.post_id) !== postId),
+        { post_id: String(postId), reaction: reactionMode },
+      ]);
+    }
+
+    // Check if this exact reaction already exists
+    const { data: existing } = await supabase
+      .from("PostUploadReactions")
+      .select("id")
+      .eq("user_id", userId)
+      .eq("post_id", postId)
+      .eq("reaction", reaction)
+      .maybeSingle();
+
+    if (existing) {
+      // Same reaction clicked again — remove it (toggle off)
+      const { error: deleteError } = await supabase
+        .from("PostUploadReactions")
+        .delete()
+        .eq("user_id", userId)
+        .eq("post_id", postId);
+
+      if (deleteError) {
+        console.error("Failed to remove reaction:", deleteError.message);
+        return;
+      }
+    } else {
+      // New reaction or switching reaction — upsert
+      const { error: reactionError } = await supabase
+        .from("PostUploadReactions")
+        .upsert({ user_id: userId, post_id: postId, reaction }, { onConflict: "user_id,post_id" });
+
+      if (reactionError) {
+        console.error("Failed to update reaction:", reactionError.message);
+        return;
+      }
+    }
+
+    const { count: likesCount } = await supabase
+      .from("PostUploadReactions")
+      .select("*", { count: "exact", head: true })
+      .eq("post_id", postId)
+      .eq("reaction", "like");
+
+    const { count: dislikesCount } = await supabase
+      .from("PostUploadReactions")
+      .select("*", { count: "exact", head: true })
+      .eq("post_id", postId)
+      .eq("reaction", "dislike");
+
+    const { error: updateError } = await supabase
+      .from("PostUploads")
+      .update({
+        likes: likesCount ?? 0,
+        dislikes: dislikesCount ?? 0,
+      })
+      .eq("id", postId);
+
+    if (updateError) {
+      console.error("Failed to update counts:", updateError.message);
+      return;
+    }
+
+    // fetchPosts();
   };
+
+  //   GET REACTIONS DONE BY THE USER
+
+  type UserReaction = {
+    post_id: string;
+    reaction: string;
+  };
+
+  const [userReactions, setUserReactions] = useState<UserReaction[]>([]);
+
+  const fetchUserReactions = useCallback(async () => {
+    if (!user) return;
+    const { data, error } = await supabase
+      .from("PostUploadReactions")
+      .select("post_id, reaction")
+      .eq("user_id", user.id);
+
+    if (error) {
+      console.log("REACTION FETCH ERROR");
+      console.log(error);
+    } else {
+      console.log("Users Reacted at");
+      console.log(data);
+      setUserReactions(data);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
+    fetchUserReactions();
+    console.log("user", user);
+  }, [user]);
 
   return (
     <div className="flex-1 max-w-4xl w-screen p-3 mx-auto gap-4">
@@ -381,22 +488,27 @@ export default function Feeds() {
           </Dialog>
           {/* POSTS */}
 
-          {postDatas.map((post) => (
-            <PostCard
-              key={post.id}
-              id={post.id}
-              username={post.username}
-              time={post.created_at}
-              title={post.title}
-              description={post.description}
-              onDelete={deletePost}
-              updateReaction={updateReaction}
-              likes={post.likes}
-              dislikes={post.dislikes}
-              imageUrl={post.image_url}
-              commentCount={0}
-            />
-          ))}
+          {postDatas.map((post) => {
+            const userReaction =
+              userReactions.find((r) => Number(r.post_id) === post.id)?.reaction ?? "";
+            return (
+              <PostCard
+                key={post.id}
+                id={post.id}
+                username={post.username}
+                time={post.created_at}
+                title={post.title}
+                description={post.description}
+                onDelete={deletePost}
+                updateReaction={updateReaction}
+                likes={post.likes}
+                dislikes={post.dislikes}
+                imageUrl={post.image_url}
+                commentCount={0}
+                userReaction={userReaction}
+              />
+            );
+          })}
           {postDatas.length == 0 && (
             <>
               <Card className="w-full mb-2 sm:mb-3 rounded-md ring-0">
